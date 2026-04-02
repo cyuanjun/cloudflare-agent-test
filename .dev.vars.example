@@ -1,0 +1,2 @@
+# Optional override for the official FPL API base URL.
+FPL_BASE_URL=https://fantasy.premierleague.com/api
