@@ -26,8 +26,12 @@
   },
   "migrations": [
     {
-      "tag": "v3",
-      "new_sqlite_classes": ["RunAgent", "SharedDataset", "AgentRegistry"]
+      "tag": "v1",
+      "new_sqlite_classes": ["RunAgent", "SharedDataset"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["AgentRegistry"]
     }
   ]
 }
