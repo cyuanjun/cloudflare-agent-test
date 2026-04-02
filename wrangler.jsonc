@@ -1,5 +1,5 @@
 {
-  "name": "cloudflare-agent-test",
+  "name": "cloudflare-agent-test-v2",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-02",
   "limits": {
