@@ -51,7 +51,14 @@ export class SharedDataset {
           refreshedAt: dataset.refreshedAt,
           datasetVersion: dataset.datasetVersion,
         });
-        return json(dataset);
+        return json({
+          available: true,
+          schemaVersion: dataset.schemaVersion,
+          datasetVersion: dataset.datasetVersion,
+          refreshedAt: dataset.refreshedAt,
+          currentGameweek: dataset.currentGameweek,
+          playerCount: dataset.playerCount,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Shared dataset refresh failed.";
         return json({ error: message }, { status: 500 });

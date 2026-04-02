@@ -16,6 +16,10 @@ describe("routeRequest", () => {
     });
 
     const env = {
+      AGENT_REGISTRY: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: fetchMock }),
+      },
       RUN_AGENT: {
         idFromName: () => ({}),
         get: () => ({ fetch: fetchMock }),
@@ -64,6 +68,10 @@ describe("routeRequest", () => {
     });
 
     const env = {
+      AGENT_REGISTRY: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: fetchMock }),
+      },
       DATASET_CACHE: {
         idFromName: () => ({}),
         get: () => ({ fetch: fetchMock }),
@@ -94,6 +102,10 @@ describe("routeRequest", () => {
     }), { status: 200 }));
 
     const env = {
+      AGENT_REGISTRY: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: fetchMock }),
+      },
       DATASET_CACHE: {
         idFromName: () => ({}),
         get: () => ({ fetch: fetchMock }),
@@ -113,5 +125,112 @@ describe("routeRequest", () => {
     expect(featuresResponse.status).toBe(200);
     const featuresPayload = await featuresResponse.json() as Array<{ xGI_per90: number }>;
     expect(featuresPayload[0].xGI_per90).toBe(0.9);
+  });
+
+  it("returns deployed agent registry rows", async () => {
+    const registryFetch = vi.fn(async () => new Response(JSON.stringify([
+      {
+        runId: "run-1",
+        profileId: "test_001",
+        status: "completed",
+        progress: "done",
+        createdAt: "2026-04-02T00:00:00.000Z",
+        updatedAt: "2026-04-02T00:10:00.000Z",
+      },
+    ]), { status: 200 }));
+
+    const env = {
+      AGENT_REGISTRY: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+      DATASET_CACHE: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+      RUN_AGENT: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+    } as any;
+
+    const response = await routeRequest(new Request("https://example.com/api/agents"), env, { waitUntil: vi.fn() } as any);
+    expect(response.status).toBe(200);
+    const payload = await response.json() as Array<{ runId: string }>;
+    expect(payload[0].runId).toBe("run-1");
+  });
+
+  it("returns profile detail with latest input and run history", async () => {
+    const registryFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/details")) {
+        return new Response(JSON.stringify({
+          record: {
+            runId: "run-1",
+            profileId: "test_001",
+            status: "completed",
+            progress: "done",
+            createdAt: "2026-04-02T00:00:00.000Z",
+            updatedAt: "2026-04-02T00:10:00.000Z",
+            result: {
+              profileId: "test_001",
+              generatedAt: "2026-04-02T00:10:00.000Z",
+              datasetVersion: "v1",
+              rankings: { GKP: [], DEF: [], MID: [], FWD: [] },
+              shortlists: { GKP: [], DEF: [], MID: [], FWD: [] },
+              squad: [],
+              totalCost: 100,
+              budgetRemaining: 0,
+              totalScore: 123.4,
+              constraintViolations: [],
+            },
+          },
+          input: {
+            userProfile: validProfile,
+            userPreferences: validPreferences,
+          },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify([
+        {
+          runId: "run-1",
+          profileId: "test_001",
+          status: "completed",
+          progress: "done",
+          createdAt: "2026-04-02T00:00:00.000Z",
+          updatedAt: "2026-04-02T00:10:00.000Z",
+        },
+      ]), { status: 200 });
+    });
+
+    const env = {
+      AGENT_REGISTRY: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+      DATASET_CACHE: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+      RUN_AGENT: {
+        idFromName: () => ({}),
+        get: () => ({ fetch: registryFetch }),
+      },
+    } as any;
+
+    const response = await routeRequest(new Request("https://example.com/api/profiles/test_001"), env, { waitUntil: vi.fn() } as any);
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      profileId: string;
+      latestInput: { userProfile: { agent_id: string } };
+      latestResult: { totalScore: number };
+      runs: Array<{ runId: string }>;
+      summary: { totalRuns: number };
+    };
+    expect(payload.profileId).toBe("test_001");
+    expect(payload.latestInput.userProfile.agent_id).toBe(validProfile.agent_id);
+    expect(payload.latestResult.totalScore).toBe(123.4);
+    expect(payload.runs[0].runId).toBe("run-1");
+    expect(payload.summary.totalRuns).toBe(1);
   });
 });

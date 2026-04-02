@@ -1,5 +1,6 @@
 import type { DurableObjectState } from "@cloudflare/workers-types";
 import type { Env, RunInput, RunRecord } from "../domain/contracts";
+import { upsertAgent } from "../domain/registry";
 import { executeRun } from "../domain/pipeline";
 
 const INPUT_KEY = "input";
@@ -17,6 +18,10 @@ function json(data: unknown, init?: ResponseInit): Response {
 
 async function loadRecord(storage: DurableObjectStorage): Promise<RunRecord | null> {
   return (await storage.get<RunRecord>(RECORD_KEY)) ?? null;
+}
+
+async function loadInput(storage: DurableObjectStorage): Promise<RunInput | null> {
+  return (await storage.get<RunInput>(INPUT_KEY)) ?? null;
 }
 
 export class RunAgent {
@@ -37,6 +42,15 @@ export class RunAgent {
       const record = await loadRecord(this.state.storage);
       return record ? json(record) : json({ error: "Run not found." }, { status: 404 });
     }
+    if (request.method === "GET" && url.pathname === "/details") {
+      const [record, input] = await Promise.all([
+        loadRecord(this.state.storage),
+        loadInput(this.state.storage),
+      ]);
+      return record
+        ? json({ record, input })
+        : json({ error: "Run not found." }, { status: 404 });
+    }
     return json({ error: "Not found." }, { status: 404 });
   }
 
@@ -50,10 +64,12 @@ export class RunAgent {
       progress: "Run created and waiting to start.",
       createdAt: now,
       updatedAt: now,
+      profileId: input.userProfile.agent_id,
     };
 
     await this.state.storage.put(INPUT_KEY, input);
     await this.state.storage.put(RECORD_KEY, record);
+    await upsertAgent(this.env, record);
     return json(record, { status: 201 });
   }
 
@@ -66,7 +82,7 @@ export class RunAgent {
       return json(record);
     }
 
-    const input = await this.state.storage.get<RunInput>(INPUT_KEY);
+    const input = await loadInput(this.state.storage);
     if (!input) {
       return json({ error: "Missing run input." }, { status: 400 });
     }
@@ -120,9 +136,11 @@ export class RunAgent {
   }
 
   private async updateRecord(record: RunRecord): Promise<void> {
-    await this.state.storage.put(RECORD_KEY, {
+    const nextRecord = {
       ...record,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await this.state.storage.put(RECORD_KEY, nextRecord);
+    await upsertAgent(this.env, nextRecord);
   }
 }

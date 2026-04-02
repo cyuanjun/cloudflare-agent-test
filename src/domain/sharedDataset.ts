@@ -68,7 +68,22 @@ export async function refreshSharedDataset(env: Env): Promise<SharedDataset> {
     const payload = await response.json().catch(() => ({ error: "Shared dataset refresh failed." })) as Record<string, unknown>;
     throw new Error(typeof payload.error === "string" ? payload.error : "Shared dataset refresh failed.");
   }
-  return await response.json() as SharedDataset;
+  const dataset = await fetchSharedDataset(env);
+  if (!dataset) {
+    throw new Error("Shared dataset refresh completed but no usable dataset was stored.");
+  }
+  return dataset;
+}
+
+export async function refreshSharedDatasetMeta(env: Env): Promise<Record<string, unknown>> {
+  const response = await getDatasetStub(env).fetch("https://dataset.internal/refresh", {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: "Shared dataset refresh failed." })) as Record<string, unknown>;
+    throw new Error(typeof payload.error === "string" ? payload.error : "Shared dataset refresh failed.");
+  }
+  return await response.json() as Record<string, unknown>;
 }
 
 export async function ensureSharedDataset(

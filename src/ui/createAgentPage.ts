@@ -1,36 +1,16 @@
 import { renderShell } from "./theme";
 
-export function renderHomePage(): string {
+export function renderCreateAgentPage(): string {
   const body = `
     <section>
-      <div class="eyebrow mono">Cloudflare Agent Frontend</div>
-      <h1 class="title">Agent Overview</h1>
-      <p class="subtitle">Upload a profile JSON and preferences JSON, trigger a Cloudflare agent run, then inspect rankings, squad output, raw player data, and derived features in the linked data explorer pages.</p>
-    </section>
-
-    <section class="metric-strip" style="margin-top:24px">
-      <div class="metric">
-        <div class="metric-label">Run Model</div>
-        <div class="metric-value">Async DO</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Shared Dataset</div>
-        <div class="metric-value" id="metricDataset">Checking</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Current GW</div>
-        <div class="metric-value" id="metricGw">-</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Player Count</div>
-        <div class="metric-value" id="metricPlayers">-</div>
-      </div>
+      <div class="eyebrow mono">Run Launcher</div>
+      <h1 class="title">Agent Control</h1>
     </section>
 
     <section class="grid two" style="margin-top:24px">
       <div class="panel">
         <div class="panel-title">
-          <strong>Run Inputs</strong>
+          <strong>Create Agent</strong>
           <span class="pill"><span class="pulse"></span> Profile Aware</span>
         </div>
         <label class="mono muted" for="profileFile">User profile JSON</label>
@@ -57,7 +37,7 @@ export function renderHomePage(): string {
         </label>
         <div id="validation" class="status muted mono">Select both files to begin.</div>
         <div class="actions" style="margin-top:12px">
-          <button id="runButton">Run Agent</button>
+          <button id="runButton">Create Agent Instance</button>
           <a class="button secondary" href="/api/templates/user_profile.json" download>Sample Profile</a>
           <a class="button secondary" href="/api/templates/user_preferences.json" download>Sample Preferences</a>
         </div>
@@ -66,42 +46,13 @@ export function renderHomePage(): string {
       <div class="panel">
         <div class="panel-title">
           <strong>Run Telemetry</strong>
-          <span class="pill"><span class="pulse"></span> Live Status</span>
+          <span class="mono muted">Current run only</span>
         </div>
         <div id="runStatus" class="status muted mono">No run started yet.</div>
         <div class="actions" style="margin-top:12px">
           <button id="refreshButton" class="secondary">Refresh Status</button>
-          <a class="button tertiary" href="/players">Open Players</a>
-          <a class="button tertiary" href="/data">Open Dataset</a>
+          <a class="button tertiary" href="/agents">Deployed Agents</a>
         </div>
-      </div>
-    </section>
-
-    <section class="grid two" style="margin-top:24px">
-      <div class="panel">
-        <div class="panel-title">
-          <strong>Selected Squad</strong>
-          <span class="mono muted">Result artifact</span>
-        </div>
-        <div id="squadSummary" class="status muted mono">Results will appear here.</div>
-        <div class="table-wrap" style="margin-top:12px">
-          <table>
-            <thead>
-              <tr><th>Pos</th><th>Name</th><th>Team</th><th>Price</th><th>Score</th></tr>
-            </thead>
-            <tbody id="squadTableRows">
-              <tr><td colspan="5" class="muted mono">No squad yet.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-title">
-          <strong>Top Rankings</strong>
-          <span class="mono muted">Top 5 by position</span>
-        </div>
-        <div id="rankingTables" class="grid two"></div>
       </div>
     </section>
   `;
@@ -116,25 +67,10 @@ export function renderHomePage(): string {
     const runButton = document.getElementById("runButton");
     const refreshButton = document.getElementById("refreshButton");
     const runStatus = document.getElementById("runStatus");
-    const squadSummary = document.getElementById("squadSummary");
-    const squadTableRows = document.getElementById("squadTableRows");
-    const rankingTables = document.getElementById("rankingTables");
 
     async function readJsonFile(file) {
       if (!file) return null;
       return JSON.parse(await file.text());
-    }
-
-    async function loadDatasetMetrics() {
-      try {
-        const response = await fetch("/api/data");
-        const payload = await response.json();
-        document.getElementById("metricDataset").textContent = payload.available ? "Ready" : "Missing";
-        document.getElementById("metricGw").textContent = payload.currentGameweek ?? "-";
-        document.getElementById("metricPlayers").textContent = payload.playerCount ?? "-";
-      } catch {
-        document.getElementById("metricDataset").textContent = "Error";
-      }
     }
 
     async function validateLocalFiles() {
@@ -158,37 +94,6 @@ export function renderHomePage(): string {
       }
     }
 
-    function renderResult(result) {
-      if (!result) {
-        squadSummary.textContent = "Results will appear here.";
-        squadSummary.className = "status muted mono";
-        squadTableRows.innerHTML = '<tr><td colspan="5" class="muted mono">No squad yet.</td></tr>';
-        rankingTables.innerHTML = "";
-        return;
-      }
-
-      squadSummary.innerHTML = [
-        "PROFILE: " + result.profileId,
-        "DATASET: " + result.datasetVersion,
-        "TOTAL COST: £" + result.totalCost.toFixed(1) + "m",
-        "BANK LEFT: £" + result.budgetRemaining.toFixed(1) + "m",
-        "TOTAL SCORE: " + result.totalScore.toFixed(2),
-        result.constraintViolations.length ? "WARNINGS: " + result.constraintViolations.map((item) => item.detail).join("; ") : "WARNINGS: NONE"
-      ].join("<br>");
-      squadSummary.className = "status mono";
-
-      squadTableRows.innerHTML = result.squad.map((player) =>
-        "<tr><td>" + player.position + "</td><td>" + player.name + "</td><td>" + player.teamName + "</td><td>£" + player.price.toFixed(1) + "m</td><td>" + player.score.toFixed(2) + "</td></tr>"
-      ).join("");
-
-      rankingTables.innerHTML = Object.entries(result.rankings).map(([position, rows]) => {
-        const topFive = rows.slice(0, 5);
-        return "<div class='panel'><div class='panel-title'><strong>" + position + "</strong><span class='mono muted'>Ranking</span></div><div class='table-wrap'><table><thead><tr><th>Name</th><th>Team</th><th>Score</th></tr></thead><tbody>" +
-          topFive.map((row) => "<tr><td>" + row.name + "</td><td>" + row.teamName + "</td><td>" + row.score.toFixed(2) + "</td></tr>").join("") +
-          "</tbody></table></div></div>";
-      }).join("");
-    }
-
     async function loadRunStatus() {
       if (!state.runId) return;
       const response = await fetch("/api/runs/" + encodeURIComponent(state.runId));
@@ -205,7 +110,6 @@ export function renderHomePage(): string {
         payload.error ? "ERROR: " + payload.error : "UPDATED: " + payload.updatedAt
       ].join("<br>");
       runStatus.className = payload.status === "failed" ? "status error mono" : payload.status === "completed" ? "status live mono" : "status mono";
-      renderResult(payload.result || null);
       if (payload.status === "completed" || payload.status === "failed") {
         if (state.pollHandle) clearInterval(state.pollHandle);
         state.pollHandle = null;
@@ -220,15 +124,10 @@ export function renderHomePage(): string {
         const response = await fetch("/api/runs", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            userProfile: state.parsedProfile,
-            userPreferences: state.parsedPreferences
-          })
+          body: JSON.stringify({ userProfile: state.parsedProfile, userPreferences: state.parsedPreferences })
         });
         const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Run creation failed.");
-        }
+        if (!response.ok) throw new Error(payload.error || "Run creation failed.");
         state.runId = payload.runId;
         runStatus.textContent = "Run created. Waiting for first status update.";
         runStatus.className = "status mono";
@@ -247,8 +146,7 @@ export function renderHomePage(): string {
     preferencesFile.addEventListener("change", validateLocalFiles);
     runButton.addEventListener("click", startRun);
     refreshButton.addEventListener("click", loadRunStatus);
-    loadDatasetMetrics();
   `;
 
-  return renderShell("Fantopy Overview", body, script);
+  return renderShell("Fantopy Agent Control", "create-agent", body, script);
 }

@@ -4,7 +4,7 @@ export function renderPlayersPage(): string {
   const body = `
     <section>
       <div class="eyebrow mono">Shared Dataset Explorer</div>
-      <h1 class="title">Players And Features</h1>
+      <h1 class="title">Player Data</h1>
       <p class="subtitle">This mirrors the split from your earlier repo: a standard raw player table and a separate derived-features table. Both read from the shared cached dataset, not from per-run artifacts.</p>
     </section>
 
@@ -232,5 +232,5 @@ export function renderPlayersPage(): string {
     loadDataset();
   `;
 
-  return renderShell("Fantopy Players", body, script);
+  return renderShell("Fantopy Player Data", "player-data", body, script);
 }

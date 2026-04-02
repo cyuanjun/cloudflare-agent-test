@@ -1,4 +1,4 @@
-export function renderShell(title: string, body: string, script: string): string {
+export function renderShell(title: string, activeNav: "overview" | "load-dataset" | "player-data" | "create-agent" | "deployed-agents", body: string, script: string): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -325,9 +325,11 @@ export function renderShell(title: string, body: string, script: string): string
   <body>
     <nav class="nav">
       <span class="brand">Fantopy</span>
-      <a class="nav-link${title.includes("Overview") ? " active" : ""}" href="/">Overview</a>
-      <a class="nav-link${title.includes("Players") ? " active" : ""}" href="/players">Players</a>
-      <a class="nav-link${title.includes("Dataset") ? " active" : ""}" href="/data">Dataset</a>
+      <a class="nav-link${activeNav === "overview" ? " active" : ""}" href="/">Overview</a>
+      <a class="nav-link${activeNav === "load-dataset" ? " active" : ""}" href="/data">Load Dataset</a>
+      <a class="nav-link${activeNav === "player-data" ? " active" : ""}" href="/players">Player Data</a>
+      <a class="nav-link${activeNav === "create-agent" ? " active" : ""}" href="/create-agent">Create Agent</a>
+      <a class="nav-link${activeNav === "deployed-agents" ? " active" : ""}" href="/agents">Deployed Agents</a>
     </nav>
     <main>${body}</main>
     <script type="module">${script}</script>

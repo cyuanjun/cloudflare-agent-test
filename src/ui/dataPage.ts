@@ -4,7 +4,7 @@ export function renderDataPage(): string {
   const body = `
     <section>
       <div class="eyebrow mono">Shared Objective Layer</div>
-      <h1 class="title">Dataset Control Room</h1>
+      <h1 class="title">Dataset Control</h1>
       <p class="subtitle">This is the backend-style shared data layer from your earlier repo, collapsed into Cloudflare. Refresh it here, inspect dataset health, and preview the stored derived artifact that all user runs consume.</p>
     </section>
 
@@ -16,7 +16,7 @@ export function renderDataPage(): string {
         </div>
         <div class="actions">
           <button id="refreshButton">Refresh Shared Dataset</button>
-          <a class="button secondary" href="/players">Open Players</a>
+          <a class="button secondary" href="/players">Open Player Data</a>
           <a class="button tertiary" href="/">Back To Overview</a>
         </div>
         <div id="status" class="status muted mono" style="margin-top:12px">Loading dataset metadata.</div>
@@ -113,5 +113,5 @@ export function renderDataPage(): string {
     loadMeta();
   `;
 
-  return renderShell("Fantopy Dataset", body, script);
+  return renderShell("Fantopy Load Dataset", "load-dataset", body, script);
 }

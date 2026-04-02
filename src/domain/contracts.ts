@@ -313,6 +313,7 @@ export interface RunRecord {
   updatedAt: string;
   error?: string;
   result?: RunResult;
+  profileId?: string;
 }
 
 export interface RunInput {
@@ -323,7 +324,18 @@ export interface RunInput {
 export interface Env {
   RUN_AGENT: DurableObjectNamespace;
   DATASET_CACHE: DurableObjectNamespace;
+  AGENT_REGISTRY: DurableObjectNamespace;
   FPL_BASE_URL?: string;
+}
+
+export interface AgentSummary {
+  runId: string;
+  profileId: string | null;
+  status: RunStatus;
+  progress: string;
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
 }
 
 export interface SharedDataset {
